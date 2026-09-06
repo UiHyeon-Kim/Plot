@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # versionName과 태그가 어긋난 릴리즈, 손으로 쓴 릴리즈 노트가 없는 릴리즈를 막는다.
+      - name: Validate release inputs
+        id: meta
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            echo "tag가 아닌 실행 — 게시 없이 빌드만 수행"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          actual="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+          if [[ "$actual" != "$version" ]]; then
+            echo "::error::app/build.gradle.kts versionName($actual) != tag($version)"
+            exit 1
+          fi
+          notes="docs/release-notes/${version}.md"
+          if [[ ! -s "$notes" ]]; then
+            echo "::error::$notes 가 없다. docs/release-notes/TEMPLATE.md를 복사해 작성할 것."
+            exit 1
+          fi
+          if grep -q 'TODO' "$notes"; then
+            echo "::error::$notes 에 TODO가 남아 있다."
+            exit 1
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
+
+      - name: Decode keystore
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            echo "::warning::KEYSTORE_BASE64 secret이 없어 서명 없이 빌드한다."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/keystore.jks"
+          test -s "$GITHUB_WORKSPACE/keystore.jks"
+          keytool -list -keystore "$GITHUB_WORKSPACE/keystore.jks" \
+            -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Test and build release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SIGNED: ${{ steps.keystore.outputs.signed }}
+        run: |
+          args=(test detekt lint assembleRelease bundleRelease)
+          if [[ "$SIGNED" == "true" ]]; then
+            args+=(
+              -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/keystore.jks"
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD"
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS"
+              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+            )
+          fi
+          ./gradlew "${args[@]}"
+
+      - name: Verify signed artifacts
+        if: steps.keystore.outputs.signed == 'true'
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          for apk in app/build/outputs/apk/release/*.apk; do
+            "$apksigner" verify "$apk"
+          done
+          for bundle in app/build/outputs/bundle/release/*.aab; do
+            jarsigner -verify "$bundle"
+          done
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plot-${{ github.ref_name }}
+          if-no-files-found: error
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/mapping/release/mapping.txt
+
+      # 본문 = 손으로 쓴 릴리즈 노트. 라벨별 자동 생성 목록(.github/release.yml)은 그 아래에 붙는다.
+      - name: Create GitHub Release
+        if: steps.meta.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: ${{ steps.meta.outputs.notes }}
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
