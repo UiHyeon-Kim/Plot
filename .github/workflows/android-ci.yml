@@ -1,0 +1,31 @@
+name: Android CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v3
+
+      - name: Unit Test
+        run: ./gradlew test
+
+      - name: Detekt
+        run: ./gradlew detekt
+
+      - name: Lint
+        run: ./gradlew lint
+
+      - name: Build Debug
+        run: ./gradlew assembleDebug

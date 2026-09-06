@@ -1,0 +1,31 @@
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    max: 3
+  WildcardImport:
+    active: true
+  # @Preview 함수는 호출되지 않아도 정상이다.
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+
+complexity:
+  LongMethod:
+    threshold: 40
+  LongParameterList:
+    functionThreshold: 6
+    constructorThreshold: 8
+  TooManyFunctions:
+    thresholdInClasses: 15
+
+naming:
+  # Composable은 PascalCase가 관례이므로 규칙에서 제외한다.
+  FunctionNaming:
+    functionPattern: '[a-z][a-zA-Z0-9]*|`.*`'
+    ignoreAnnotated: ['Composable']
+
+comments:
+  active: false

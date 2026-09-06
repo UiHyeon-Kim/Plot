@@ -1,0 +1,14 @@
+changelog:
+  categories:
+    - title: 🚀 기능
+      labels: [feat, feature]
+    - title: 🐛 수정
+      labels: [fix, bug]
+    - title: ♻️ 리팩터링
+      labels: [refactor]
+    - title: 🧪 테스트
+      labels: [test]
+    - title: 📝 문서
+      labels: [docs]
+    - title: 🔧 기타
+      labels: ["*"]

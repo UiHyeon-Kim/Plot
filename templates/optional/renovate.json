@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 9am on monday"],
+  "packageRules": [
+    {
+      "groupName": "Kotlin toolchain",
+      "matchPackageNames": ["org.jetbrains.kotlin*", "com.google.devtools.ksp*"]
+    },
+    {
+      "groupName": "Compose",
+      "matchPackageNames": ["androidx.compose*", "androidx.compose.compiler*"]
+    },
+    {
+      "groupName": "Hilt",
+      "matchPackageNames": ["com.google.dagger*"]
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
