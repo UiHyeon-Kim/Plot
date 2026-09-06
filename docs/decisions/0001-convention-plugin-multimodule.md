@@ -1,27 +1,41 @@
 # 0001. Convention Plugin 기반 멀티모듈 채택
 
 - 상태: 채택
-- 날짜: 2026-08-27
+- 날짜: 2026-09-06
 
 ## Context
-모듈이 7개 이상(`:core:*`, `:feature:*`)으로 늘어나는 팀/대규모 프로젝트에서, 각 모듈의
-`build.gradle.kts`에 `compileSdk`, `minSdk`, Java/Kotlin 버전, Compose 활성화 같은 설정을
-매번 복붙하면 버전 하나 바꿀 때마다 N개 파일을 손대야 하고, 모듈마다 설정이 미묘하게
-어긋나는 문제가 생긴다.
+Plot은 일정 관리와 투두를 함께 다루는 앱이라, 화면이 캘린더·투두 목록·상세·통계·설정·알림처럼
+갈라질 것으로 봤다. 지금은 1인 개발이지만 feature가 5개 이상으로 늘어나는 구조다.
+
+모듈마다 `build.gradle.kts`에 `compileSdk`, `minSdk`, Java/Kotlin 타깃, Compose 활성화, Hilt·KSP
+적용을 반복해 적으면 두 가지가 문제가 된다. 버전 하나 올릴 때 N개 파일을 고쳐야 하고, 그러다
+모듈마다 설정이 미묘하게 어긋난다. 어긋난 설정은 빌드가 깨질 때까지 드러나지 않는다.
 
 ## Decision
-`:build-logic` 모듈에 Convention Plugin(`AndroidApplicationConventionPlugin`,
-`AndroidLibraryConventionPlugin`, `AndroidLibraryComposeConventionPlugin`,
-`JvmLibraryConventionPlugin`)을 정의하고, 각 모듈은 `id("<앱명>.android.library.compose")`처럼
-plugin ID 하나만 적용한다. 공통 설정 변경은 Convention Plugin 한 곳만 고치면 전 모듈에 반영된다.
+`:build-logic`에 Convention Plugin을 정의하고, 각 모듈은 plugin ID 하나만 적용한다.
+
+| Plugin ID | 대상 |
+|---|---|
+| `hanhyo.plot.android.application` | `:app` |
+| `hanhyo.plot.android.library` | `:core:data` |
+| `hanhyo.plot.android.library.compose` | `:core:ui` |
+| `hanhyo.plot.jvm.library` | `:core:domain`, `:core:common` |
+| `hanhyo.plot.android.hilt` | Hilt + KSP가 필요한 모듈 |
+| `hanhyo.plot.android.feature` | `:feature:*` — 위 둘에 Navigation·Serialization·공용 Compose 의존성까지 묶음 |
+
+SDK 레벨은 `gradle/libs.versions.toml`에 두고 Convention Plugin이 읽는다. 버전 정보가 카탈로그
+한 곳에만 존재하게 하기 위해서다.
 
 ## Alternatives considered
-- **모듈마다 직접 설정**: 초기 진입 비용은 낮지만(소규모 프로필이 이 방식), 모듈이 늘어날수록
-  중복이 선형으로 늘어나 유지보수 비용이 커진다. 4모듈 이하 소규모에는 오히려 이쪽이 더 간단해서
-  `android-template-simple`(Profile B)로 별도 유지한다.
-- **buildSrc**: Convention Plugin과 동일한 효과를 내지만 Gradle 9 기준 `build-logic`
-  (`includeBuild`) 방식이 증분 빌드·구성 캐시 호환성이 더 좋다.
+- **모듈마다 직접 설정**: 초기 진입 비용이 없다. 모듈이 4개 이하로 끝난다면 이쪽이 더 간단하다.
+  Plot은 feature가 계속 늘어나는 구조라 중복이 선형으로 쌓이는 쪽을 피했다.
+- **buildSrc**: 같은 효과를 내지만, `buildSrc`는 내용이 바뀌면 전체 빌드 스크립트가 무효화된다.
+  `includeBuild("build-logic")` 방식이 증분 빌드와 구성 캐시에 더 유리하다.
 
 ## Trade-off
-초기 셋업 복잡도가 소규모 대비 높다(Convention Plugin 자체를 이해해야 함). 모듈이 4개 이하로
-끝날 게 확실한 프로젝트라면 이 구조는 과설계다.
+Convention Plugin 자체를 이해해야 모듈을 추가할 수 있다. 설정이 어디서 오는지가 모듈
+`build.gradle.kts`만 봐서는 안 보이므로, 새 설정을 넣을 때 Convention Plugin과 모듈 중 어디에
+둘지 매번 판단해야 한다.
+
+feature가 예상과 달리 3~4개에서 멈춘다면 이 구조는 과설계다. 그때는 `:build-logic`을 걷어내고
+모듈별 설정으로 되돌리는 편이 낫다.

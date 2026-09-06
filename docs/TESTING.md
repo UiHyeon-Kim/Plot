@@ -19,12 +19,17 @@ Turbine 같은 별도 라이브러리는 필요해질 때(다단계 emission 검
 
 ```kotlin
 @Test
-fun `refresh 이후 state에 메시지가 반영된다`() = runTest {
-    val viewModel = HomeViewModel(FakeGetGreetingUseCase())
+fun `Refresh intent 처리 후 state에 메시지가 반영된다`() = runTest {
+    val viewModel = HomeViewModel(GetGreetingUseCase())
+
     viewModel.handleIntent(HomeIntent.Refresh)
-    assertEquals("Hello, Template!", viewModel.state.value.message)
+
+    assertEquals("Hello, Plot!", viewModel.state.value.message)
 }
 ```
+
+UseCase가 외부 의존(Repository)을 갖게 되면 그때 Fake Repository를 만들어 주입한다. 의존이
+없는 UseCase까지 Fake로 감싸지 않는다.
 
 ## 명령
 ```bash
