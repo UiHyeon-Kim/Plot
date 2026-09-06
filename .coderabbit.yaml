@@ -94,7 +94,7 @@ reviews:
 code_generation:
   unit_tests:
     path_instructions:
-      - path: /**
+      - path: "**/*.kt"
         instructions: |
           JUnit4 + kotlinx-coroutines-test(runTest)로 작성합니다. Mock 라이브러리는 쓰지 않고,
           외부 의존이 필요하면 Fake 구현체를 직접 만듭니다. docs/TESTING.md 컨벤션을 따릅니다.
