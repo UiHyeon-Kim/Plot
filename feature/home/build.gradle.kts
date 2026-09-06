@@ -5,7 +5,6 @@ plugins {
 android { namespace = "com.hanhyo.plot.feature.home" }
 
 dependencies {
-    implementation(project(":core:ui"))
     implementation(project(":core:domain"))
 
     testImplementation(libs.junit)

@@ -9,9 +9,7 @@ android { namespace = "com.hanhyo.plot.core.ui" }
 dependencies {
     api(platform(libs.androidx.compose.bom))
     api(libs.bundles.compose.ui)
-    api(libs.androidx.lifecycle.viewmodel.compose)
-    api(libs.androidx.navigation.compose)
-    api(libs.androidx.hilt.navigation.compose)
+    api(libs.androidx.compose.material.icons.extended)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -21,10 +21,15 @@ Plot은 일정 관리와 투두를 함께 다루는 앱이라, 화면이 캘린�
 | `hanhyo.plot.android.library.compose` | `:core:ui` |
 | `hanhyo.plot.jvm.library` | `:core:domain`, `:core:common` |
 | `hanhyo.plot.android.hilt` | Hilt + KSP가 필요한 모듈 |
-| `hanhyo.plot.android.feature` | `:feature:*` — 위 둘에 Navigation·Serialization·공용 Compose 의존성까지 묶음 |
+| `hanhyo.plot.android.feature` | `:feature:*` — Hilt + `:core:ui` 의존 + Navigation·Serialization |
 
 SDK 레벨은 `gradle/libs.versions.toml`에 두고 Convention Plugin이 읽는다. 버전 정보가 카탈로그
 한 곳에만 존재하게 하기 위해서다.
+
+의존성 출처도 하나로 고정한다. **Compose UI는 `:core:ui`가 `api`로 재노출**하고,
+`hanhyo.plot.android.feature`는 `:core:ui` 의존과 화면 아키텍처 라이브러리(Navigation,
+hilt-navigation-compose, lifecycle-viewmodel-compose)만 더한다. 둘 다 Compose를 추가하면
+같은 의존성이 두 경로로 들어와, 나중에 버전을 조정할 때 어디를 고쳐야 하는지가 흐려진다.
 
 ## Alternatives considered
 - **모듈마다 직접 설정**: 초기 진입 비용이 없다. 모듈이 4개 이하로 끝난다면 이쪽이 더 간단하다.
