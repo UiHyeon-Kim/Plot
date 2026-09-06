@@ -55,3 +55,8 @@
   `docs/release-notes/<version>.md`(TEMPLATE.md 복사본, TODO 없음)가 있어야 한다.
   릴리스 본문은 이 손으로 쓴 노트이고, 라벨별 커밋 목록(`.github/release.yml`)은 그 아래에 붙는다.
 - 서명은 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD` secret이 있을 때만 수행된다.
+
+## 후속/기술부채
+- 지금 고치지 않고 넘어가는 것은 GitHub Issue에 `tech-debt` 라벨로 남긴다.
+  "나중에"라고만 적힌 코드 주석은 남기지 않는다 — 이슈에 왜 미뤘는지까지 쓴다.
+
